@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { SfNode } from './models/sf-node';
+import { SfNode } from './sf-node';
 
 @Component({
   selector: 'app-root',
@@ -11,7 +11,13 @@ export class AppComponent {
   allNodes: SfNode[] = [
     new SfNode('1', 'First Description'),
     new SfNode('2', 'Second Description'),
-    new SfNode('3', 'Third Description'),
+    new SfNode('3', 'Third Description', [
+      new SfNode('3.1', 'Second Description'),
+      new SfNode('3.2', 'Third Description', [
+        new SfNode('3.2.1', 'Second Description'),
+        new SfNode('3.2.2', 'Third Description'),
+      ]),
+    ]),
     new SfNode('4', 'Fourth Description'),
   ];
 
@@ -67,6 +73,6 @@ export class AppComponent {
   }
 
   private findNextNodeToProcess(node: SfNode): SfNode | undefined {
-    return this.nodesProcessed.at(this.nodesProcessed.indexOf(node) + 1);
+    return this.nodesProcessed[this.nodesProcessed.indexOf(node) + 1];
   }
 }
