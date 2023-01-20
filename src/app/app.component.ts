@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, Inject } from '@angular/core';
 import { SfNode } from './sf-node';
+import { DOCUMENT } from '@angular/common';
 
 @Component({
   selector: 'app-root',
@@ -21,58 +22,112 @@ export class AppComponent {
     new SfNode('4', 'Fourth Description'),
   ];
 
-  nodesProcessed: SfNode[] = [];
+  private allNodeElements!: NodeListOf<HTMLElement> | undefined;
 
-  startingNode?: SfNode | null;
-  endingNode?: SfNode | null;
+  nodesProcessed!: Array<SfNode>;
 
-  onmousedown($event: MouseEvent, node: SfNode) {
-    this.startingNode = node;
-    this.endingNode = null;
-    this.nodesProcessed = [node];
+  constructor(@Inject(DOCUMENT) private document: Document) {
   }
 
-  onmouseover($event: MouseEvent, node: SfNode) {
-    if (!this.startingNode) {
+  processHighlightedText() {
+    const selection = window.getSelection();
+
+    let isReversed = false;
+    if (selection) {
+      isReversed = selection?.anchorOffset > selection?.focusOffset;
+    }
+
+    this.allNodeElements = selection?.getRangeAt(0)?.commonAncestorContainer?.parentNode?.querySelectorAll('.node-processed');
+
+    let selectedRows;
+
+    if (isReversed) {
+      selectedRows = this.processSelectedNodes(selection?.focusNode?.parentElement, selection?.anchorNode?.parentElement, []);
+    } else {
+      selectedRows = this.processSelectedNodes(selection?.anchorNode?.parentElement, selection?.focusNode?.parentElement, []);
+    }
+
+    const allRows = this.processAllNodes(selection?.anchorNode?.parentElement, selection?.focusNode?.parentElement, isReversed);
+
+    // Output: Approach 1
+    // this.nodesProcessed = selectedRows.map((row: any) => new SfNode(row.id, row.innerText))
+
+    // Output: Approach 2
+    if (allRows) {
+      if (isReversed) {allRows.reverse()}
+      this.nodesProcessed = allRows.map((row: any) => new SfNode(row.id, row.innerText))
+    }
+  }
+
+  /**
+   * Approach 1
+   * Goes through all the nodes to find the ones that match the selected duos (start/end nodes)
+   * @param startingELement
+   * @param endingELement
+   * @param isReversed
+   */
+  processAllNodes(startingELement: HTMLElement | null | undefined, endingELement: HTMLElement | null | undefined, isReversed: boolean) {
+    const matchedNodes = [];
+
+    let includeCursor = false;
+    let endCursor = false;
+
+    if (!this.allNodeElements) {
       return ;
     }
 
-    const onTheList = this.isANodeToProcess(node);
+    const starting = isReversed ? this.allNodeElements!.length - 1 : 0;
+    const condition = (i: number) => isReversed ? (i > 0) : (i < this.allNodeElements!.length);
 
-    if (onTheList) {
-      const nextNode = this.findNextNodeToProcess(node);
-      if (nextNode) {
-        this.removeNodeFromProcessing(nextNode);
+    for (let i = starting; condition(i); isReversed ? i-- : i++) {
+      if (startingELement?.id === this.allNodeElements[i].id) {
+        includeCursor = true;
+      }
+
+      if (endingELement?.id === this.allNodeElements[i].id) {
+        endCursor = true;
+      }
+
+      if (includeCursor) {
+        matchedNodes.push(this.allNodeElements[i])
+      }
+
+      if (endCursor) {
+        break;
       }
     }
 
-    if (!onTheList) {
-      this.nodesProcessed.push(node);
-    }
+    return matchedNodes;
   }
 
-  onmouseup($event: MouseEvent, node: SfNode) {
-    if (!this.startingNode) {
+  /**
+   * Approach 2
+   * Goes through higlighted nodes to find the ones that match the selected duos (start/end nodes)
+   * @param startingELement
+   * @param endingELement
+   * @param affectedList
+   */
+  processSelectedNodes(startingELement: Element | null | undefined, endingELement: Element | null | undefined, affectedList: any = []): any {
+    // Only add if the element doesn't exist and is a node
+    if (!affectedList.find((af: any) => af.id === startingELement?.id) && startingELement?.className === "node-processed") {
+      affectedList.push(startingELement);
+    }
+
+    if (startingELement?.id === endingELement?.id) {
       return ;
     }
 
-    if (this.nodesProcessed.length === 1) {
-      this.removeNodeFromProcessing(node)
+    if (startingELement?.nextElementSibling?.className === "node-processed") {
+      // Check the elements' next sibling
+      this.processSelectedNodes(startingELement?.nextElementSibling, endingELement, affectedList);
+    } else if (startingELement?.nextElementSibling?.className === "node-parent-processed") {
+      // Keep checking the children of "node-parent-processed"
+      this.processSelectedNodes(startingELement?.nextElementSibling.firstElementChild, endingELement, affectedList);
+    } else if (startingELement?.parentElement?.className === "node-parent-processed") {
+      // Keep going back to the parent till we reach the root of "node-parent-processed"
+      this.processSelectedNodes(startingELement?.parentElement, endingELement, affectedList);
     }
 
-    this.endingNode = node;
-    this.startingNode = null;
-  }
-
-  private isANodeToProcess(node: SfNode): SfNode | undefined {
-    return this.nodesProcessed.find(lNode => lNode.id === node.id);
-  }
-
-  private removeNodeFromProcessing(node: SfNode) {
-    this.nodesProcessed.splice(this.nodesProcessed.indexOf(node), 1);
-  }
-
-  private findNextNodeToProcess(node: SfNode): SfNode | undefined {
-    return this.nodesProcessed[this.nodesProcessed.indexOf(node) + 1];
+    return affectedList;
   }
 }
