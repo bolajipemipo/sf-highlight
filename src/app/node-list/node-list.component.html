@@ -29,8 +29,7 @@
 
 <ng-template #nodeActionsRef let-node="node">
   <li class="node-processed"
-      id="node-{{node.id}}"
-      (mouseup)="finishedHighlighting()">
+      id="node-{{node.id}}">
     <ng-container
       *ngTemplateOutlet="nodeInformationRef; context: {$implicit: node}"
     ></ng-container>

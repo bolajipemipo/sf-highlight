@@ -32,6 +32,8 @@ export class AppComponent {
   processHighlightedText() {
     const selection = window.getSelection();
 
+    console.log(selection)
+
     let isReversed = false;
     if (selection) {
       isReversed = selection?.anchorOffset > selection?.focusOffset;

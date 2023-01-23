@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { SfNode } from '../sf-node';
 
 @Component({
@@ -10,16 +10,10 @@ export class NodeListComponent implements OnInit {
 
   @Input() nodeList!: Array<SfNode>;
   @Input() nodesProcessed!: Array<SfNode>;
-  @Output() doneSelecting: EventEmitter<boolean> = new EventEmitter();
 
   constructor() {
   }
 
   ngOnInit(): void {
   }
-
-  finishedHighlighting() {
-    this.doneSelecting.emit(true);
-  }
-
 }
